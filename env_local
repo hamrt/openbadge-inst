@@ -1,0 +1,11 @@
+export NODE_ENV=production
+export MASTER_SECRET=
+export HOOK_SECRET=
+export ALGO_MASTER_SECRET=HS256
+export API_URL=localhost
+export API_PORT=8088
+export INST=badgekit
+export HOST=localhost
+export PORT=5000
+export SMTP_STRING=
+export EMAIL=
