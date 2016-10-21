@@ -1,0 +1,32 @@
+{
+  "name": "openbadge-inst",
+  "version": "0.0.1",
+  "description": "A badge handling platform for institues",
+  "author": "Ronald Ham",
+  "license": "CC-BY-SA-4.0",
+  "main": "app/index.js",
+  "scripts": {
+    "start": "node app"
+  },
+  "dependencies": {
+    "express": "~4.14.0",
+    "logfmt": "~1.2.0",
+    "http": "0.0.0",
+    "jws": "~3.1.3",
+    "nodemailer": "~2.6.4",
+    "body-parser": "~1.15.2",
+    "crypto": "~0.0.3",
+    "qs": "~6.2.1" 
+    "promise": "~7.1.1";
+  },
+  "devDependencies": {
+  },
+  "homepage": "https://github.com/hamrt/openbadge-inst",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/hamrt/openbadge-inst.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hamrt/openbadge-inst/issues"
+  }
+}
