@@ -171,6 +171,7 @@ apiRequest.end();
 
 
 //VIEWBADGE ASSERTION PAGE
+//TODO add functionality to put tis badge into ANY backpack (needs to work on www.edubadge.nl)
 app.get('/viewBadge', function(req, res) {
 	//show the details for this badge
 
@@ -228,15 +229,93 @@ app.get('/viewBadge', function(req, res) {
 		res.send(outputHTML);			
 	})
 	.catch (error => {console.log(error)});
-	
-
 
 });
 
 
+//ACCEPT BADGE AND ISSUE IT
+app.get('/accept', function(req, res) {
 
+//load parameters from get
+var badgeSlug=req.query.badge;
+var earner=req.query.earner;
+var application=req.query.application;
 
-//APPLY PAGEa
+var awardPath = "/systems/badgekit/badges/"+badgeSlug+"/instances";
+
+var awardData = qs.stringify({
+    email: earner 
+});
+
+var claimData = {
+    header: {typ: 'JWT', alg: 'HS256'},
+    payload: {
+        key: 'master',
+        exp: Date.now() + (1000 * 60),
+        method: 'POST',
+        path: awardPath,
+        body: {
+            alg: "sha256",
+            hash: crypto.createHash('sha256').update(awardData).digest('hex')
+        }
+    },
+    secret: process.env.MASTER_SECRET
+};
+
+var requestOptions = {
+    hostname : process.env.API_URL,
+    port : process.env.API_PORT,
+    path : awardPath, 
+    method : 'POST', 
+    headers: { 'Authorization': 'JWT token="' + jws.sign(claimData) + '"',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(awardData)
+    }
+};
+
+var postRequest = http.request(requestOptions, function(acceptResponse) {
+    var response = [];
+    acceptResponse.setEncoding('utf8');
+
+    acceptResponse.on('data', function (responseData) {                 
+        response.push(responseData);
+    });
+
+    acceptResponse.on('end', function(){
+        var awardData=JSON.parse(response.join('')); 
+        console.log('accept response: ' + response.join(''));//output all at once
+        if(awardData.status==="created"){ //status created
+            res.send("<html>"+
+                "<head>"+
+                "<title>Badge Accepted</title>"+
+                "<style type='text/css'>"+
+                "//add some css"+
+                "</style>"+
+                "</head>"+
+                "<body>"+
+                "<h1>You've accepted your badge!</h1>"+
+                "<p>Thanks! We'll be in touch.</p>"+
+                "</body>"+
+                "</html>"
+            );
+            //mark application as processed
+            processApplication(badgeSlug, application);//we will add this next
+        }
+        else {
+            res.send("Whoops! Something went wrong with your badge.");
+        }
+    });
+});
+
+postRequest.on('error', function(e) {
+    console.error(e);
+});
+// post the data
+postRequest.write(awardData);
+postRequest.end();
+});
+
+//APPLY PAGE
 app.get('/apply', function(req, res) {
 
 	//application form
@@ -453,6 +532,9 @@ app.post('/hook', function(req, res) {
 });
 
 
+
+//extra functionalities reusing code
+
 function getAuthToken(req) {
   const authHeader = req.headers.authorization
   if (!authHeader) return
@@ -522,4 +604,60 @@ function urlToPath(url){
 		url=url.replace(':'+process.env.API_PORT,'');
 	}
 	return url;
+}
+
+function processApplication(bdgSlug, appSlug){
+//process application
+var processPath = "/systems/badgekit/badges/"+bdgSlug+"/applications/"+appSlug;
+var proc = new Date();
+var processData = qs.stringify({
+    processed: proc 
+});
+
+var claimData = {
+    header: {typ: 'JWT', alg: 'HS256'},
+    payload: {
+        key: 'master',
+        exp: Date.now() + (1000 * 60),
+        method: 'PUT',
+        path: processPath,
+        body: {
+            alg: "SHA256",
+            hash: crypto.createHash('SHA256').update(processData).digest('hex')
+        }
+    },
+    secret: process.env.MASTER_SECRET
+};
+
+var requestOptions = {
+	hostname : process.env.API_URL,
+	port : process.env.API_PORT, 
+    path : processPath, 
+    method : 'PUT', 
+    headers: { 'Authorization': 'JWT token="' + jws.sign(claimData) + '"',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(processData)
+    }
+};
+
+var putRequest = http.request(requestOptions, function(processResponse) {
+    var response = [];
+    processResponse.setEncoding('utf8');
+
+    processResponse.on('data', function (responseData) {                    
+        response.push(responseData);
+    });
+
+    processResponse.on('end', function(){
+        console.log("process response: "+response.join(''));
+    });
+});
+
+putRequest.on('error', function(e) {
+    console.error(e);
+});
+// post the data
+putRequest.write(processData);
+putRequest.end();
+
 }
