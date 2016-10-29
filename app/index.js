@@ -188,6 +188,7 @@ app.get('/viewBadge', function(req, res) {
 		issueDate.setUTCSeconds(utcSeconds);
 
 		var badgeName = assertion.badge.split("/").pop();
+		var backpackURL = createBadgepack();
 		
 		outputHTML="<html>"+
 		"<head>"+
@@ -195,13 +196,26 @@ app.get('/viewBadge', function(req, res) {
 		"<style type='text/css'>"+
 		"//add some CSS"+
 		"</style>"+
-		"</head>"+
-		"<body>";		
+		"<script src='"+ backpackURL + "/issuer.js' type='text/javascript'></script>"
+		outputHTML+="<script>";
+		outputHTML+="function clickButton()";
+		outputHTML+="{";
+		outputHTML+="OpenBadges.issue(['"+assertionURL+"'], function(errors, successes) {";
+//		outputHTML+="//...";
+		outputHTML+="});";
+		outputHTML+="}"; 
+		outputHTML+="</script>";  
+		outputHTML+="</head>";
+		outputHTML+="<body>";
+
 		outputHTML+="<div class='assertion'>";
 		outputHTML+="<h1>"+badgeName+" Assertion</h1>";
 		outputHTML+="This Assertion belongs to the following badge url ";
 		outputHTML+="<a href='"+assertionURL+"'>"+assertionURL+"</a><br/>";
 		outputHTML+="it was issued on: "+issueDate.toString();
+		outputHTML+="<form name='Form1' action='#'>";  
+		outputHTML+="<input type='button' value='add to my badgepack' name='button' onclick='clickButton()' />";  
+		outputHTML+="</form>";
 		outputHTML+="</div>";
 		return getAPIObjectAtURL(assertion.badge, 'badge');})
 	// wait for badgeInfo to be loaded
@@ -224,7 +238,6 @@ app.get('/viewBadge', function(req, res) {
 			outputHTML+="<li>"+criteria[c].description+"</li>";
 		}
 		if(criteria.length>0) outputHTML+="</ul>";
-
 		outputHTML+="</div></body></html>";
 		res.send(outputHTML);			
 	})
@@ -550,7 +563,7 @@ function getAPIObjectAtURL(url, type){
     return new Promise(
         function (resolve, reject) {
 
-			var objectPath=urlToPath(url);
+			var objectPath=urlToPath(url, 'API');
 			if (type == 'badge')
 			{ objectPath=objectPath.replace('/public',''); }
 
@@ -596,14 +609,40 @@ function getAPIObjectAtURL(url, type){
 		
 }
 
-function urlToPath(url){
-	if (process.env.API_URL != ''){
-		url=url.replace('http://'+process.env.API_URL,'');
-	}
-	if (process.env.API_PORT != ''){
-		url=url.replace(':'+process.env.API_PORT,'');
+function createBadgepack(){
+        var url='';
+        if (process.env.BACKPACK != ''){
+                url+='http://'+process.env.BACKPACK;
+        }
+        if (process.env.BP_PORT != ''){
+                url+=':'+process.env.BP_PORT
+        }
+        return url;
+}
+
+
+function urlToPath(url, host){
+	switch(host) {
+	//api event
+		case 'API':
+			if (process.env.API_URL != ''){
+				url=url.replace('http://'+process.env.API_URL,'');
+			}
+			if (process.env.API_PORT != ''){
+				url=url.replace(':'+process.env.API_PORT,'');
+			}
+		break;
+		case 'HOST':
+			if (process.env.HOST != ''){
+				url=url.replace('http://'+process.env.HOST,'');
+			}
+			if (process.env.PORT != ''){
+				url=url.replace(':'+process.env.PORT,'');
+			}
+		break;
 	}
 	return url;
+	
 }
 
 function processApplication(bdgSlug, appSlug){
@@ -661,3 +700,5 @@ putRequest.write(processData);
 putRequest.end();
 
 }
+
+
